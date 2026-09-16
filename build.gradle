@@ -1,0 +1,17 @@
+allprojects {
+    group = 'com.github.auciellos'
+    version = '1.0.0-SNAPSHOT'
+
+    repositories {
+        mavenCentral()
+    }
+}
+
+// Expose main Liquibase tasks at root level delegating to :db
+['update', 'rollbackCount', 'rollback', 'status', 'dropAll', 'validate'].each { taskName ->
+    tasks.register(taskName) {
+        group = 'liquibase'
+        description = "Delegates ${taskName} to :db:${taskName}"
+        dependsOn ":db:${taskName}"
+    }
+}

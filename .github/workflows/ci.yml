@@ -1,0 +1,61 @@
+name: CI Database Continuous Integration
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build-and-verify:
+    name: Build & Verify Migrations
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: db_ci
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping -h localhost -u root -proot" --health-interval=10s --health-timeout=5s --health-retries=5
+
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: db_ci
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Run Gradle Build and Automated Tests (H2 In-Memory)
+        run: ./gradlew clean test
+
+      - name: Verify Liquibase Migration on MySQL
+        run: |
+          ./gradlew update -Pmysql
+          ./gradlew rollbackCount -Pmysql -ProllbackCount=1
+          ./gradlew update -Pmysql
+
+      - name: Verify Liquibase Migration on PostgreSQL
+        run: |
+          ./gradlew update -Ppostgres
+          ./gradlew rollbackCount -Ppostgres -ProllbackCount=1
+          ./gradlew update -Ppostgres

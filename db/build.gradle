@@ -1,0 +1,115 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.liquibase:liquibase-core:4.25.0'
+    }
+}
+
+plugins {
+    id 'java-library'
+    id 'org.liquibase.gradle' version '3.1.0'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+dependencies {
+    // Liquibase Core
+    implementation 'org.liquibase:liquibase-core:4.25.0'
+
+    // Database JDBC Drivers
+    implementation 'com.mysql:mysql-connector-j:8.3.0'
+    implementation 'org.postgresql:postgresql:42.7.2'
+    implementation 'com.h2database:h2:2.2.224'
+
+    // Testing Dependencies
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.assertj:assertj-core:3.25.3'
+    testImplementation 'org.slf4j:slf4j-simple:2.0.12'
+
+    // Liquibase Runtime
+    liquibaseRuntime 'org.liquibase:liquibase-core:4.25.0'
+    liquibaseRuntime 'info.picocli:picocli:4.7.5'
+    liquibaseRuntime 'com.mysql:mysql-connector-j:8.3.0'
+    liquibaseRuntime 'org.postgresql:postgresql:42.7.2'
+    liquibaseRuntime 'com.h2database:h2:2.2.224'
+    liquibaseRuntime 'org.slf4j:slf4j-api:2.0.12'
+    liquibaseRuntime 'org.slf4j:slf4j-simple:2.0.12'
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
+
+def getProp = { String name ->
+    project.findProperty(name) ?: rootProject.findProperty(name)
+}
+
+def mysqlHost = getProp('mysql.host') ?: getProp('mysqlHost') ?: 'localhost'
+def mysqlPort = getProp('mysql.port') ?: getProp('mysqlPort') ?: '3306'
+def mysqlDb = getProp('mysql.db') ?: getProp('mysqlDb') ?: 'db_ci'
+def mysqlLogin = getProp('mysql.login') ?: getProp('mysqlLogin') ?: 'root'
+def mysqlPassword = getProp('mysql.password') ?: getProp('mysqlPassword') ?: 'root'
+
+def postgresHost = getProp('postgres.host') ?: getProp('postgresHost') ?: 'localhost'
+def postgresPort = getProp('postgres.port') ?: getProp('postgresPort') ?: '5432'
+def postgresDb = getProp('postgres.db') ?: getProp('postgresDb') ?: 'db_ci'
+def postgresLogin = getProp('postgres.login') ?: getProp('postgresLogin') ?: 'postgres'
+def postgresPassword = getProp('postgres.password') ?: getProp('postgresPassword') ?: 'postgres'
+
+// Support rollbackCount property aliases from Maven / CLI
+if (!project.hasProperty('liquibaseCount')) {
+    def countVal = getProp('liquibaseCount') ?: getProp('liquibase.rollbackCount') ?: getProp('rollbackCount') ?: getProp('liquibaseCommandValue')
+    if (countVal != null) {
+        project.ext.liquibaseCount = countVal.toString()
+    }
+}
+
+liquibase {
+    jvmArgs = ["-Duser.dir=${projectDir}"]
+    activities {
+        h2 {
+            changelogFile 'liquibase/master.xml'
+            searchPath "${projectDir}/src/main/resources"
+            driver 'org.h2.Driver'
+            url 'jdbc:h2:mem:db_ci;DB_CLOSE_DELAY=-1'
+            username 'sa'
+            password 'sa'
+        }
+        mysql {
+            changelogFile 'liquibase/master.xml'
+            searchPath "${projectDir}/src/main/resources"
+            driver 'com.mysql.cj.jdbc.Driver'
+            url "jdbc:mysql://${mysqlHost}:${mysqlPort}/${mysqlDb}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+            username "${mysqlLogin}"
+            password "${mysqlPassword}"
+        }
+        postgres {
+            changelogFile 'liquibase/master.xml'
+            searchPath "${projectDir}/src/main/resources"
+            driver 'org.postgresql.Driver'
+            url "jdbc:postgresql://${postgresHost}:${postgresPort}/${postgresDb}"
+            username "${postgresLogin}"
+            password "${postgresPassword}"
+        }
+    }
+
+    def defaultRunList = 'h2'
+    if (project.hasProperty('mysql') || rootProject.hasProperty('mysql')) {
+        defaultRunList = 'mysql'
+    } else if (project.hasProperty('postgres') || rootProject.hasProperty('postgres')) {
+        defaultRunList = 'postgres'
+    } else if (project.hasProperty('h2') || rootProject.hasProperty('h2')) {
+        defaultRunList = 'h2'
+    }
+
+    runList = project.findProperty('runList') ?: rootProject.findProperty('runList') ?: defaultRunList
+}
