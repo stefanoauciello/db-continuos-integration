@@ -1,12 +1,11 @@
 # Database Continuous Integration & Automated Migration
 
 [![CI Build](https://github.com/stefanoauciello/db-continuos-integration/actions/workflows/ci.yml/badge.svg)](https://github.com/stefanoauciello/db-continuos-integration/actions/workflows/ci.yml)
-[![Java](https://img.shields.io/badge/Java-17%2B-blue.svg)](https://openjdk.org/)
+[![Java](https://img.shields.io/badge/Java-21%2B-blue.svg)](https://openjdk.org/)
 [![Gradle](https://img.shields.io/badge/Gradle-8.12-02303A.svg)](https://gradle.org/)
 [![Liquibase](https://img.shields.io/badge/Liquibase-4.25.0-blue.svg)](https://www.liquibase.org/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1.svg)](https://www.mysql.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791.svg)](https://www.postgresql.org/)
-[![License](https://img.shields.io/badge/License-CC0_1.0-lightgrey.svg)](LICENSE)
 
 Un'architettura di riferimento e template pratico per implementare la **Continuous Integration (CI) e il versionamento automatico dello schema del database** utilizzando **Liquibase**, **Gradle**, **Docker** e **GitHub Actions**.
 
@@ -76,7 +75,6 @@ db-continuos-integration/
 ├── gradlew                        # Script wrapper Unix/macOS
 ├── gradlew.bat                    # Script wrapper Windows
 ├── settings.gradle                # Definizione dei moduli del progetto Gradle
-├── LICENSE                        # Licenza CC0 1.0 Universal
 └── README.md                      # Documentazione del progetto
 ```
 
@@ -138,7 +136,7 @@ Il progetto contiene 4 migrazioni dimostrative progressive, scritte in formato *
 ## 🚀 Guida Rapida (Quick Start)
 
 ### Prerequisiti
-- **Java JDK 17** o superiore
+- **Java JDK 21** o superiore
 - **Gradle 8+** (oppure utilizzare il **Gradle Wrapper** `./gradlew` o `gradlew.bat` già incluso)
 - *(Opzionale)* **Docker & Docker Compose** per testare su istanze reali di MySQL/PostgreSQL
 
@@ -233,7 +231,7 @@ docker compose down
 Il progetto include un workflow di CI completo definito in [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 Ad ogni `push` o `pull_request` sui branch `main` e `master`:
-1. Viene predisposto l'ambiente **Java 17 Temurin** con cache Gradle.
+1. Viene predisposto l'ambiente **Java 21 Temurin** con cache Gradle.
 2. Vengono avviati come service container ufficiali **MySQL 8** e **PostgreSQL 16**.
 3. Viene eseguita la suite di test unitari e di migrazione in memoria (`./gradlew clean test`).
 4. Viene eseguito il ciclo completo di migrazione, rollback e ri-migrazione sia su **MySQL** sia su **PostgreSQL**.
@@ -248,9 +246,3 @@ Questo garantisce che nessun commit possa compromettere la compatibilità dello 
 - **Rollback Obbligatorio**: ogni changeset DDL o DML è accompagnato dalla strategia di ripristino corrispondente.
 - **Separazione di Ambiente**: configurazione modulare gestita tramite attività Gradle dedicate (`h2`, `mysql`, `postgres`).
 - **Nessuna dipendenza locale hardcoded**: assenza di percorsi assoluti; le risorse risiedono in `src/main/resources` e sono accessibili tramite classpath.
-
----
-
-## 📄 Licenza
-
-Questo progetto è rilasciato sotto licenza [Creative Commons Zero v1.0 Universal (CC0 1.0)](LICENSE) - Pubblico Dominio.
